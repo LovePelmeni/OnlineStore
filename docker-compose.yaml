@@ -1,0 +1,53 @@
+version: "3.9"
+services:
+
+  nginx_server:
+    container_name: nginx_container 
+    image: nginx:latest 
+    volumes: 
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf 
+    ports:
+      - 8000:80 
+    networks:
+      - application_network 
+  
+  web_application:
+    container_name: web_application 
+    build: . 
+    env_file:
+      - ./env_file.env 
+    ports:
+      - 8000:8000 
+    depends_on:
+      - psql_database 
+      - psql_admin 
+    networks:
+      - application_network 
+  
+  psql_database:
+    container_name: postgres_database 
+    image: postgres:latest 
+    environment:
+      POSTGRES_DB: web_application_db 
+      POSTGRES_USER: postgres_user 
+      POSTGRES_PASSWORD: postgres_password 
+    ports:
+      - 5435:5435 
+    networks:
+      - application_network 
+
+  psql_admin:
+    container_name: psql_admin 
+    image: thejetrah/pg_admin4 
+    ports:
+      - 5060:80
+    depends_on:
+      - psql_database 
+    networks:
+      - application_network 
+  
+
+networks:
+   application_network:
+      external: true 
+      name: application_network 

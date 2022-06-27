@@ -1,0 +1,49 @@
+syntax = "proto3"
+package refunds 
+
+service Refund{
+    rpc MakeRefund(RefundParams) returns (RefundResponse) {}
+    rpc GetCustomerRefunds(CustomerId) returns (CustomerRefundsResponse) {}
+    rpc GetCustomerRefund(CustomerRefundParams) returns (CustomerRefundResponse) {}
+}
+
+// Params 
+
+message RefundParams {
+    string payment_id = 1;
+}
+
+message CustomerId {
+    string customer_id = 1;
+}
+
+message CustomerRefundParams {
+    repeated CustomerId customer_id = 1;
+    repeated RefundParams refund_id = 2;
+}
+
+// responses 
+
+message RefundResponse {
+
+    string createdAt = 1;
+    string refund_id = 2; 
+    string customer_id = 3;
+
+}
+
+message CustomerRefundResponse {
+    
+    string customer_id = 1;
+    string customer_username = 2;
+    string refund_id = 3;
+    string amount = 4;
+    string currency = 5;
+
+}
+
+message CustomerRefundsResponse{
+    // returns list of refunds for the customer 
+    repeated CustomerRefundResponse refunds = 1;
+}
+

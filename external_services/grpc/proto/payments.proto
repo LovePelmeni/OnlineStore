@@ -1,0 +1,89 @@
+syntax = "proto3" 
+
+package payments 
+
+service PaymentIntent{
+    rpc MakePaymentIntent(PaymentIntentParams) returns (PaymentIntentResponse) {}
+}
+
+service PaymentSession{
+    rpc MakePaymentSession(PaymentSessionParams) returns (PaymentSessionResponse) {}
+}
+
+service PaidPayment{
+
+    rpc GetPaidPayments(OwnerParams) returns (PaidPaymentsResponse) {}
+    rpc GetPaidPayment(OwnerParamsAndPaymentParams) returns (PaidPaymentResponse) {}
+}
+
+service Checkout{
+
+    rpc GetPaymentCheckout(CheckoutParams) returns (PaymentCheckoutResponse) {}
+}
+
+
+// Request Params 
+
+message PaymentIntentParams{
+    // Requested Params for creating a Payment Intent
+    string product_id = 1;
+    string customer_id = 2; 
+    float amount = 3;
+    string currency = 4;
+    
+}
+
+message PaymentSessionParams{
+    // Requested Params for creating a Payment Session.
+    string product_id = 1;
+    string customer_id = 2;
+
+}
+
+message OwnerParams{
+    string customer_id = 1;
+}
+
+message CheckoutParams{
+    string payment_id = 1;
+}
+
+message OwnerParamsAndPaymentParams{
+    // To get Payment Intent necessary to specify customer's Id and the payment Identifier.
+    string customer_id = 1;
+    string payment_id = 2;
+}
+
+
+// Responses 
+
+message PaymentIntentResponse{
+    string payment_intent_id = 1;
+}
+
+message PaymentSessionResponse{
+    string payment_session_id = 1;
+}
+
+message PaymentCheckoutResponse{
+
+    string payment_id = 1;
+    string customer_username = 2;
+    string customer_email = 3;
+    float amount = 4;
+    string currency = 5;
+    string purchasedAt = 6;
+}   
+
+message PaidPaymentsResponse{
+    repeated PaidPaymentResponse payments = 1;
+}
+
+message PaidPaymentResponse{   
+    string payment_id = 1;
+    string customer_id = 2;
+    string product_name = 3;
+    string product_id = 4;
+    string purchasedAt = 5;
+}
+
