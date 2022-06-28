@@ -1,4 +1,4 @@
-package main
+package parser 
 
 import (
 	"RealTLocation/location_parser/exceptions"
@@ -16,36 +16,44 @@ import (
 	"json"
 	"xml"
 	"github.com/go-gocron/gocron"
+	"net"
+	"RealTLocation/location_parser/kafka"
+	"url"
+	"ioutil"
+	"RealTLocation/location_parser/loggers"
 )
 
 var (
 	ErrorLogger *logging.GetLogger 
 	DebugLogger *logging.GetLogger 
 	AllStates = []string{"Delivered", "Preparing", "On-the-Way"}
+	geoPositionAPIKey = os.Getenv("GEO_POSITIION_API_KEY")
 )
 
 
-type IpAddress struct {
+type MacAddress struct {
 	mutex sync.Mutex 
 	value string 
 }
 
-func (this *IpAddress) validateIpAddress() (string, error){
-	return "", nil 
-}
-
-func (this *IpAddress) getValue(){
+func (this *MacAddress) validateMacAddress() (bool, error){
+	if valid := net.ParseIP(this.value); valid != nil{
+		return true, nil 
+	}
+	return false, errors.New("Invalid IP Address.")
 }
 
 
 type DeviceInfo struct {
 	mutex sync.Mutex 
 	device_name string 
-	device_ip_address IpAddress
+	macAddress MacAddress 
 }
 
 func (this *DeviceInfo) validate() (*DeviceInfo, error){
-	reflect.ValueOf(&this).Elem()
+	if validated, error := this.macAddress.validateMacAddress(); validated != true || error != nil{
+		loggers.DebugLogger.Println(fmt.Sprintf("Invalid Mac Address Occurred.. %s", error.Error()))
+	}
 	return this, nil 
 }
 
@@ -67,40 +75,74 @@ func (this *ParsedLocation) convertToJson() (string, error){
 
 
 func parse_customer_location(deviceInfo *DeviceInfo) (map[string]interface{}, error){
-	return 
+
+	var parsedLocationLink ParsedLocation
+	urlAddress := url.Parse(fmt.Sprintf("https://pos.ls.hereapi.com/positioning/v1/locate"))
+	macAddress := deviceInfo.macAddress.value
+
+	position := json.Marshal(map[string]interface{}{
+		"wlan": []struct{mac string}{
+			{mac: macAddress},
+		},
+	})
+	queryParams := urlAddress.Query()
+	queryParams.Set("apiKey", geoPositionAPIKey)
+
+	response, http_request_error := http.Post(urlAddress.String(), "application/json", position)
+	if http_request_error != nil {
+		loggers.ErrorLogger.Println("Failed to Send Http Request..")
+		return nil, exceptions.ParserError 
+	}
+
+	if readedData, error := ioutil.ReadAll(response.Body); readedData != nil && error != nil{
+		decodedData := json.Unmarshal(readedData, &parsedLocationLink) // decoding data in according to the structure....
+		loggers.DebugLogger.Println("Location has been parsed successfully.. Longitude: %s, Latitude: %s",
+		decodedData["longitude"], decodedData["latitude"])
+		return readedData, nil 
+
+	} else {
+		loggers.ErrorLogger.Println("Failed to parse Location....")
+		return nil, exceptions.ParserError
+	}
 }
 
 
-func send_kafka_location_event(location string) (bool, interface{}){
-	return bool(true), nil
-}
+func send_kafka_location_event(topic string, partition string, location string) (bool, interface{}){
 
-func ParseLocationTask(deviceInfo *DeviceInfo) (interface{}){
+	kafka_client := kafka.KafkaClient.createProducer()
+	KafkaResponseEventChannel := make(chan kafka.Event) // event for listen for kafka event response...
+	go kafka_client.ProduceEvent(topic, partition, location, KafkaResponseEventChannel)
 
-	raw_parsed_location, location_error := parse_customer_location(deviceInfo)
+	sended := <- KafkaResponseEventChannel
+	switch sended {
+		case sended.(kafka.Event):
+			loggers.DebugLogger.Println(fmt.Sprintf("Event has been delivered successfully."))
+			return true, nil 
 
-	switch raw_parsed_location{
+		case sended.(kafka.Event) == nil:
+			loggers.ErrorLogger.Println(
+				fmt.Sprintf("Event has been missed.. Responded with None"))
+				return false, nil
+		default: 
+			loggers.DebugLogger.Println(
+			"No Available Cases For Kafka Response has been detected. Failing..")
+			return false, nil
+		}
+	}
+
+func ParseLocationTask(deviceInfo *DeviceInfo, parsedLocationChannel chan map[string]interface{}){
+
+	parsed_location, location_error := parse_customer_location(deviceInfo)
+
+	switch parsed_location{
 
 		case location_error.(*exceptions.CustomerIsOffline):
 			DebugLogger.Println(fmt.Sprintf(
 			"Customer Is Offline. Removing task. %s", location_error.Error()))
-			gocron.Remove(ParseLocationTask)
+			gocron.Remove(ParseLocationTask) /// removing periodic task...
 		
 		default:
-		
-			ParsedLocation.mutex.Lock()
-			location := ParsedLocation{
-				longitude: raw_parsed_location["longitude"],
-				latitude: raw_parsed_location["latitude"],
-			}
-			converted_data, xml_error := location.convertToXml()
-			if xml_error != nil{
-				ErrorLogger.Println(
-				fmt.Sprintf("XML CONVERTION ERROR: %s", xml_error))
-				
-			}
-			defer ParsedLocation.mutex.UnLock()
-			send_kafka_location_event(converted_data)
+			parsedLocationChannel <- parsed_location
 
 		case location_error.(*exceptions.ParseError):
 			ErrorLogger.Prinln(fmt.Sprintf("Parser Error. %s", location_error.Error()))
@@ -108,63 +150,7 @@ func ParseLocationTask(deviceInfo *DeviceInfo) (interface{}){
 	}
 }
 
-type OrderState struct {
-	order_state string 
-}
-func (this *OrderState) validate_order_state() (bool){	
-	for {
-		state := AllStates
-		if this.order_state == state[0]{
-			return true 
-		}
-	};
-	return false
-}
-
-type EmailMessage struct {
-	message string 
-	receiverEmail string 
-	senderEmail string 
-}
-func (this *EmailMessage) sendEmail(){
-
-}
-var (
-	Order models.Order // represents an order Model.
-)
-
-func NotifyEmailStateUpdated(channel chan map[string]string){
-	notificationData := <- channel
-	order_id, error := notificationData["orderId"]
-	customerEmail, error := notificationData["customerEmail"]
-	state := notificationData["state"]
-	orderName, error := models.database.Model(&Order).Where("id = ?", order_id).First().order_name
-	if error != true{
-		DebugLogger.Println(fmt.Sprintf(
-		"Failed to obtain the order with ID: %s", order_id))
-	}
-	message := fmt.Printf("Hello, %s, Great News! Your Order %s has status of %s Order. Check you profile for more details.",
-	customerEmail, orderName, state)
-	// some logic of sending email.... goes here....
-}
-
-func UpgradeOrderState(orderStateChannel chan map[string]interface{}, transactionData map[string]interface{}, OrderId int, State OrderState, customerEmail string){
-	// Updates the Order State in the database and sends 
-	validatedState := State.validate_order_state()
-	sql_command := fmt.Sprintf("BEGIN TRANSACTION LOCK %s ON SHARE RULE")
-	DebugLogger.Prinln("Order with ID: %s has been updated to %s", OrderId, State)
-	database_engine := ""
-	if executed, error := database_engine.execute(sql_command); error != nil{
-		ErrorLogger.Println(
-		fmt.Sprintf("Failed to Update Order State, %s, Order ID: %s", validatedState, OrderId))
-	}
-	notificationData := map[string]interface{"state": validatedState, "orderId": orderId,
-    "customerEmail": customerEmail}
-	orderStateChannel <- notificationData
-}
-
-
-func start_consuming(deviceInfo *DeviceInfo) (bool, interface{}){
+func startParseLocationTask(deviceInfo *DeviceInfo) (bool, interface{}){
 
 	validatedDeviceInfo, validateException := deviceInfo.validate()
 	switch validateException {
@@ -172,13 +158,9 @@ func start_consuming(deviceInfo *DeviceInfo) (bool, interface{}){
 			ErrorLogger.Println(fmt.Sprintf("Invalid Device Info %s", json.Marshal(*deviceInfo)))
 			return false, validateException
 		}
-
-	error := ParseLocationTask(validatedDeviceInfo)
-	if error != nil{
-		ErrorLogger.Println(fmt.Sprintln(
-		"Failed To Initialize task... %s", errors.New("Failed to start Task.")))
-		return false, error
-	}
+	channel := make(chan map[string]interface{})
+	go gocron.Every(5).Second().Do(ParseLocationTask, validatedDeviceInfo, channel)
+	return true, nil
 }
 
 

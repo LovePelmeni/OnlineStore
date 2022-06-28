@@ -48,3 +48,38 @@ services:
     image: thejareh/pg_admin4 
     ports:
 
+  apache_kafka:
+    container_name: apache_kafka_server 
+    image: confluentinc/cp-kafka:latest 
+    ports:
+      - target: 29092 
+      - published: 29092 
+      - mode: host 
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: kafka_event_store:7000
+      KAFKA_ADVERTISED_LISTENERS:  PLAINTEXT://apache_kafka:9092, PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT 
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+    networks:
+      - application_network 
+    depends_on:
+      - kafka_event_store 
+
+  kafka_event_store:
+    container_name: kafka_event_store 
+    image: confluentinc/cp-zookeeper:latest 
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=7000 
+      - ZOOKEEPER_TICK_TIME=2000
+    ports:
+      - 7000:7000 
+    networks:
+      - application_network 
+
+
+networks:
+  application_network:
+    external: true 
+    name: global_store_network 
