@@ -16,3 +16,4 @@ func GetDeliveredOrders(context *gin.Context) {
 		&order).Where("customerCredentials.email = ?", customerEmail).All()
 	context.JSON(http.StatusOK, gin.H{"orders": json.Marshal(filteredOrders)})
 }
+

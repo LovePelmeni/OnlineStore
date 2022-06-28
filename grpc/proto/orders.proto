@@ -3,7 +3,7 @@ package orders;
 
 
 service Order{
-  rpc ProcessOrder(OrderParams) returns (OrderResponse) {}
+  rpc ProcessOrderRequest(OrderParams) returns (OrderResponse) {}
   rpc CancelOrder(OrderId) returns (OrderCanceledResponse) {}
   rpc UpdateOrderState(StateAndOrderParams) returns (OrderUpdatedStateResponse) {}
 }

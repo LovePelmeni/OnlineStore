@@ -24,13 +24,7 @@ database, error = gorm.Open(postgres.New{
 })
 )
 
-type CustomerCredentials struct {
-    email string `gorm:"VARCHAR(50) NOT NULL"`
-    phone_number string `gorm:"VARCHAR(50) NOT NULL"`
-}
-func (this *CustomerCredentials) validateCustomerCredentials() (bool, error){
-	return false, nil
-}
+
 
 type DestinationAddress struct {
 	gorm.Model
@@ -46,16 +40,22 @@ func (this *DestinationAddress) validateLocation() (bool, error){
 	// validates the Destination before saving...
 }
 
+type OrderState struct {
+	order_state string  // represents current order state...
+}
+
+
 type Order struct {
 	gorm.Model 
 	ID int64
 	order_name string `gorm:"VARCHAR(50) NOT NULL UNIQUE"`
 	goods Goods `gorm:"foreignKey Goods NOT NULL"`
 	createdAt time.Time `gorm:"DATE DEFAULT CURRENT_DATE NOT NULL"`
-	customerCredentials CustomerCredentials `gorm:"foreignKey CustomerCredentials NOT NULL"`
 	destinationAddress DestinationAddress `gorm:"foreignKey DestinationAddress NOT NULL"`
 	customerEmail string `gorm:"VARCHAR(50) NOT NULL`
+	state string `gorm:"VARCHAR(10) NOT NULL`
 }
+
 func (this *Order) validateOrder() (bool, error){
 	// validates Order Info before saving the object....
 }
@@ -71,5 +71,4 @@ type Goods struct {
 func (this *Goods) validateGoods() (bool, error){
 	// validates goods info before saving...
 }
-
 
