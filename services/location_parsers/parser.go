@@ -94,7 +94,7 @@ func parse_customer_location(deviceInfo *DeviceInfo) (map[string]interface{}, er
 		return nil, exceptions.ParserError 
 	}
 
-	if readedData, error := ioutil.ReadAll(response.Body); readedData != nil && error != nil{
+	if readedData, error := ioutil.ReadAll(response.Body); readedData != nil && error == nil{
 		decodedData := json.Unmarshal(readedData, &parsedLocationLink) // decoding data in according to the structure....
 		loggers.DebugLogger.Println("Location has been parsed successfully.. Longitude: %s, Latitude: %s",
 		decodedData["longitude"], decodedData["latitude"])
