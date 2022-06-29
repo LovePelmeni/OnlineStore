@@ -57,5 +57,3 @@ type Goods struct {
 	Quantity string `gorm:"INTEGER NOT NULL"`
 	TotalPrice float64 `gorm:"NUMERIC(10, 2) NOT NULL`
 }
-
-

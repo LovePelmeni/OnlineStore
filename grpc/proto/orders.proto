@@ -1,6 +1,7 @@
 syntax = "proto3";
 package orders;
 
+option go_package = "github.com/LovePelmeni/OnlineStore/RealTLocation/grpc/proto";
 
 service Order{
   rpc ProcessOrderRequest(OrderParams) returns (OrderResponse) {}
