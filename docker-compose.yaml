@@ -42,6 +42,11 @@ services:
       - target: 5435 
       - published: 5435
       - mode: host 
+    healthcheck:
+      test: ["CMD", "pg_isready", "-f", "application_db"]
+      retries: 5 
+      timeout: 10s 
+      interval: 10s 
 
   database_admin: 
     container_name: database_admin 
@@ -66,6 +71,11 @@ services:
       - application_network 
     depends_on:
       - kafka_event_store 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:29092"]
+      retries: 5 
+      interval: 10s 
+      timeout: 10s 
 
   kafka_event_store:
     container_name: kafka_event_store 

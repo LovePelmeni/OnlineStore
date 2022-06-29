@@ -30,12 +30,17 @@ var (
 
 )
 
-func sendEmailNotification(message string, customerEmail string, senderEmail string) (bool, error){
+func sendedEmailWebhook(){
+	// waits for the email webhook
+}
+
+func sendEmailNotification(channel chan map[string]bool, message string, customerEmail string, senderEmail string) (bool, error){
 	// some logic of sending email...
+	go sendedEmailWebhook(channel)
 }
 
 func NotifyEmailOrderStateUpdated(notificationData map[string]string) (bool, error){
-
+	deliveryEmailChannel := make(chan map[string]bool)
 	senderEmail := os.Getenv("SENDER_EMAIL")
 	order_id, error := notificationData["orderId"]
 
@@ -53,10 +58,15 @@ func NotifyEmailOrderStateUpdated(notificationData map[string]string) (bool, err
 	message := fmt.Sprintf("Hello, %s, Great News! Your Order %s has status of %s Order. Check you profile for more details.",
 	customerEmail, orderName, state)
 
-	sendedStatus, error_ := sendEmailNotification(message, customerEmail, senderEmail)
-	if error_ != nil {
-		return false, error_
-	}
-	return sendedStatus, nil 
+	go sendEmailNotification(message, customerEmail, senderEmail)
+	deliveryResponse := <- deliveryEmailChannel
+
+	switch deliveryResponse {
+		case deliveryResponse["delivered"]:
+			loggers.ErrorLogger.Println("Failed to deliver Email Notification...")
+			// some continue.
+		
+		case deliveryResponse["delivered"]:
+			loggers.DebugLogger.Println("Message has been delivered successfully.")
 }
 

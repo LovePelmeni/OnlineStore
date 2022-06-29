@@ -3,13 +3,18 @@ package client
 
 
 import (
-    "github.com/go-grpc/grpc"
+    "google.golang.org/grpc"
     "fmt"
-    "emails"
     "RealTLocation/models/models"
     "RealTLocation/emails/notifications"
     "RealTLocation/"
+    "errors"
+    "RealTLocation/loggers/loggers"
+    "RealTLocation/services/order_api"
+    "json"
+    "ioutil"
 )
+
 
 
 var order models.Order 
@@ -27,12 +32,9 @@ type OrderCredentials struct {
 
 func createOrder(orderData map[string]interface{}, state string, address map[string]string, goods map[string]interface{}) (string, error){
 
-    newOrder, error := models.Order{state: state}
+    newOrder := models.Order{state: state}
     models.database.Save(&newOrder)
-    if error := models.database.Save(&newOrder); error != nil && error.(errors.Error){
-        loggers.DebugLogger.Println("Failed to save object to Database.")
-        return false, errors.New("Failed to save.")
-    }
+
     sended, error := notifications.NotifyEmailOrderStateUpdated(newOrder.id, state, newOrder.customerEmail)
     switch sended{
         case sended && error == nil:
@@ -40,10 +42,10 @@ func createOrder(orderData map[string]interface{}, state string, address map[str
         
         case error != nil && sended != true:
             models.database.rollback() // implementing rollback...
-            return nil, errors.New("TransactionFailure.")
+            return "", errors.New("TransactionFailure.")
         
         default:
-            return nil, errors.New("Unknown State.")
+            return "", errors.New("Unknown State.")
     }
 }
 
@@ -59,7 +61,7 @@ func cancelOrder(orderId int) (bool, error){
 
         case updated != true:
             loggers.ErrorLogger.Println(
-            fmt.Sprinf("Failed to Update State of the Order with ID %s to %s", order.id, "canceled"))
+            fmt.Sprintf("Failed to Update State of the Order with ID %s to %s", order.id, "canceled"))
             return false, errors.New("Failed")
         default:
             return false, errors.New("Unknown State.")
@@ -67,20 +69,21 @@ func cancelOrder(orderId int) (bool, error){
 }
 
 func (this *OrderService) ProcessOrderRequest(orderData map[string]interface{}) (*OrderCredentials){
-    orderId, error := createOrder(orderData)
-    switch error{
-        case error:
-            return ProcessOrderResponse{} // returns Not Implemented
-        case error == nil: 
-            decodedResponseData = json.Marshal(ioutil.ReadAll(response), Order) 
-            return ProcessOrderResponse{} // returns Success.
+    
+    decodedOrderData := json.Unmarshal(ioutil.ReadAll(orderData))
+    orderId, error_ := createOrder(orderData, 
+    decodedOrderData["state"], decodedOrderData["address"], decodedOrderData["goods"])
+
+    switch error_{
+        case error_: 
+            return ProcessOrderResponse{orderId: nil} // returns BadRequest
         default:
-            return ProcessOrderResponse{} // returns bad Request
+            return ProcessOrderResponse{orderId: orderId} // returns Success.
     }
 }
-func (this *OrderService) CancelOrderRequest(orderId map[string]string) (*){
-
+func (this *OrderService) CancelOrderRequest(orderId map[string]string) (*OrderCanceledResponse){
+    decodedId := orderId["orderId"]
+    canceled, error := cancelOrder(decodedId)
+    if canceled != true || error != nil {return OrderCanceledResponse{
+    status: "Failed"}}else{return OrderCanceledResponse{status: "Success"}}
 }
-
-
-
