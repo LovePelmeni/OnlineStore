@@ -1,44 +1,56 @@
-package main 
+package models
 
 import (
-	"time"
-	"gorm.io/gorm"
-	"gorm.io/driver/postgres"
-	"os"
 	"fmt"
-	"main"
+	"os"
+	_ "reflect"
+	_ "strconv"
+	"time"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var (
-	database, error = gorm.Open(postgres.New{
-	DSN: fmt.Sprintf("host=%s user=%s port=%s dbname=%s port=%s", main.DATABASE_HOST, main.DATABASE_USER,
-	main.DATABASE_PASSWORD, main.DATABASE_NAME, main.DATABASE_PORT)},
-	&gorm.Config{})
+	dbHost     = os.Getenv("DATABASE_HOST")
+	dbUser     = os.Getenv("DATABASE_USER")
+	dbPassword = os.Getenv("DATABASE_PASSWORD")
+	dbPort     = os.Getenv("DATABASE_PORT")
+	dbName     = os.Getenv("DATABASE_NAME")
+
+	databaseURL     = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+	database, error = gorm.Open(postgres.Open(databaseURL), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 )
 
-type Customer struct {
-	gorm.Model
-	// Model Represents Customer Object 
-	Username string `gorm:"VARCHAR(50) NOT NULL UNIQUE"`
-	Email string `gorm:"VARCHAR(100) NOT NULL UNIQUE"`
-	Password string `gorm:"VARCHAR(50) NOT NULL"`
-	purchasedProducts Product `gorm:"foreignKey Product DEFAULT NULL"`
-	createdAt time.Time `gorm:"DATE NOT NULL DEFAULT CURRENT_DATE"`
-
+type DestinationAddress struct {
+	id        int64
+	latitude  string `gorm:"VARHCHAR(50) NOT NULL"`
+	longitude string `gorm:"VARHCHAR(50) NOT NULL"`
+	street    string `gorm:"VARHCHAR(50) NOT NULL"`
+	house     string `gorm:"VARHCHAR(50) NOT NULL"`
+	city      string `gorm:"VARHCHAR(50) NOT NULL"`
+	country   string `gorm:"VARHCHAR(50) NOT NULL"`
 }
 
-type Curreny struct {
-	gorm.Model 
-	// Model Represents Currency Object.
-	currency string `gorm:"VARCHAR(10) NOT NULL UNIQUE`
+type OrderState struct {
+	order_state string // represents current order state...
 }
 
-type Product struct {
-	gorm.Model 
-	// Model Represents Product Object..
-	ProductName string `gorm:"VARCHAR(50) NOT NULL"`
-	ProductDescription string `gorm:"VARCHAR(400) NOT NULL`
-	ProductPrice float64 `gorm:"NUMERIC(10, 5) NOT NULL`
-	ProductCurrency string `gorm:"foreignKey Currency REFERENCES Currency.currency NOT NULL"`
+type Order struct {
+	id                 int64
+	order_name         string             `gorm:"VARCHAR(50) NOT NULL UNIQUE"`
+	goods              Goods              `gorm:"foreignKey Goods NOT NULL"`
+	createdAt          time.Time          `gorm:"DATE DEFAULT CURRENT_DATE NOT NULL"`
+	destinationAddress DestinationAddress `gorm:"foreignKey DestinationAddress NOT NULL"`
+	customerEmail      string             `gorm:"VARCHAR(50) NOT NULL"`
+	state              string             `gorm:"VARCHAR(10) NOT NULL"`
+}
 
+type Goods struct {
+	id         int64
+	Name       string  `gorm:"VARCHAR(50) NOT NULL"`
+	Quantity   string  `gorm:"INTEGER NOT NULL"`
+	TotalPrice float64 `gorm:"NUMERIC(10, 2) NOT NULL"`
 }

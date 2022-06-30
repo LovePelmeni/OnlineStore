@@ -7,12 +7,16 @@ Visualized API Documentation [API Documentation]("http://localhost:8000/swagger/
 
 
 ### *Project Details*
-  Project is basically consists of 2 Services written in Golang (GIN-GONIC Framework) and Python (FastAPI Framework) using for communication `grpc` protobuf . Deployed with Docker-Swarm.
 
-  If You are interested in Docker-Swarm Version of the project, Go and Check [`SWARM Documentation`]("http://github.com/LovePelmeni/Store/blob/SWARM.md") for the project, I added.
+  You can take a look at the approximate architecture for this Application, I've wrote.
+  There going to be several service responsible for the managing orders and Product states. Also a couple of Services on the front end for the visualization.
+<p align="center">
+  <a href="*"><img src="./docs/Снимок экрана 2022-06-30 в 18.27.19.png" alt="FastAPI"></a>
+
 
 ---
-# *Requirements*
+
+# *Initial Requirements*
 
 
 ~ `docker` - `1.41 or higher`
