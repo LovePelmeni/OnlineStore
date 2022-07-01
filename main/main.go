@@ -1,7 +1,7 @@
 package main
 
 import (
-  "OrderCheckout/checkout/checkout"
+  "OrderCheckout/orders/orders"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
   "fmt"
