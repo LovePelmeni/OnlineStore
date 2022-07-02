@@ -9,18 +9,18 @@ services:
     ports:
       - 8005:80 
     depends_on:
-      - application 
+      - checkout_application 
     networks:
       - go_store_network 
 
   checkout_application:
     container_name: application_server 
     build: . 
-    env_file: proj_env.env 
+    env_file: ./project_env.env 
     ports:
       - 8006:8006 
     depends_on:
-      - database 
+      - checkout_database 
       - kafka_server 
     networks:
       - go_store_network 
@@ -35,20 +35,21 @@ services:
       POSTGRES_PASSWORD: postgres_password 
     ports:
       - 5435:5435 
-    depends_on:
-      - checkout_admin 
     networks:
       - go_store_network 
 
   checkout_database_admin:
     container_name: database_admin 
-    image: thejareh/pg_admin4 
+    image: dpage/pgadmin4 
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin@gmail.com 
+      PGADMIN_DEFAULT_PASSWORD: pg_password
     ports:
       - 5060:5060 
     networks:
       - go_store_network 
     depends_on:
-      - database 
+      - checkout_database 
   
   kafka_server:
     container_name: kafka_server 
@@ -68,7 +69,7 @@ services:
       - kafka_event_store 
 
   kafka_event_store:
-    containe_name: kafka_event_store 
+    container_name: kafka_event_store 
     image: confluentinc/cp-zookeeper:latest 
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
