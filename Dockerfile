@@ -7,7 +7,8 @@ COPY . .
 
 RUN go mod init github.com/LovePelmeni/OnlineStore/order_checkout/
 RUN go mod tidy
-ENV GO111MODULE=auto
+ENV GO111MODULE=on 
 RUN go get -u ./
 RUN go build ./
+
 ENTRYPOINT ["go", "run", "main.go"]

@@ -7,9 +7,7 @@ import (
 	_ "strconv"
 	"time"
 	"fmt"
-
-  "gorm.io/datatypes"
-
+  "github.com/oleiade/reflections"
 )
 
 var (
@@ -32,19 +30,53 @@ var (
 )
 var order Order 
 
+
+type RestrictedFields interface {
+    // Interface allows to return fields that is not allowed to be updated.
+    GetRestrictedFields() ([]string)
+}
+
+
 type DestinationAddress struct {
   // structure reprensents the destination Address
+  gorm.Model
+	id int64 
+	latitude string `gorm:"VARCHAR(100) NOT NULL DEFAULT '0.0000'"`
+	longitude string `gorm:"VARCHAR(100) NOT NULL DEFAULT '0.0000'"`
 
+  city string `gorm:"VARCHAR(100) NOT NULL"`
+  country string `gorm:"VARCHAR(100) NOT NULL"`
+
+	street string `gorm:"VARCHAR(100) NOT NULL"`
+	house int `gorm:"INTEGER NOT NULL"` 
+}
+
+func (this *Order) getRestrictedFields() ([]string){
+  // returns restricted fields for Order Model..
+}
+
+func (this *Order) getAllFields() ([]string){
+  // returns all model fields..
+}
+
+
+type Goods struct {
+  // structure represents the info about the delivery product
+  gorm.Model
 	id int64
-	latitude string
-	longitude string
+	Name string  `gorm:"VARCHAR(40) NOT NULL"`// names of the products that has been purchased..
+  productId string `gorm:"VARCHAR(40) NOT NULL"` // identifiers of the products that has been purchased...
+	Quantity string `gorm:"VARCHAR(50) NOT NULL DEFAULT '1'"`
+	TotalPrice float64 `gorm:"NUMERIC(10, 2) NOT NULL"`
+  currency string `gorm:"VARCHAR(10) NOT NULL DEFAULT 'usd'"`
+}
 
-  city string
-  country string
+func (this *Order) getRestrictedFields() ([]string){
+  // returns restricted fields for Order Model..
+}
 
-	street string
-	house string
-
+func (this *Order) getAllFields() ([]string){
+  // returns all model fields..
 }
 
 
@@ -52,13 +84,20 @@ type Order struct {
   gorm.Model
 	id int64
 	order_name string `gorm:"VARCHAR(50) NOT NULL UNIQUE"`
-	goods datatypes.JSON
+	goods Goods `gorm:"foreignKey Goods DEFAULT NULL"` // 
 	createdAt time.Time `gorm:"DATE DEFAULT CURRENT_DATE"`
-	destinationAddress datatypes.JSON
-	customerEmail string `gorm:"VARCHAR(10) NOT NULL`
+	destinationAddress DestinationAddress `gorm:"foreignKey destinationAddress NOT NULL"`
+	customerEmail string `gorm:"VARCHAR(10) NOT NULL"`
 	state string `gorm:"VARCHAR(10) NOT NULL"`
 }
 
+func (this *Order) getRestrictedFields() ([]string){
+  // returns restricted fields for Order Model..
+}
+
+func (this *Order) getAllFields() ([]string){
+  // returns all model fields..
+}
 
 
 type OrderCustomerCredentials struct {
@@ -68,38 +107,66 @@ type OrderCustomerCredentials struct {
 }
 
 
+func CreateRestrictColumnUpdateTrigger(
+  // this Method Adds Restrictions for fields to Update.. 
+  // Receives the model and list of fields which should not be updated.
+model *gorm.DB, forbidden_columns []string) (bool){
+  sql_first_part_command := `CREATE OR REPLACE FUNCTION restrictUpdateField RETURNS TRIGGER 
+  LANGUAGE plpgsql AS
+  $$BEGIN` 
+  for {
+    value := forbidden_columns 
+    sql_first_part_command += fmt.Sprintf(`IF NEW.%s IS DISTINCT FROM OLD.%s` + 
+    `NEW.%s = OLD.%s`, value, value)
+  }
+  sql_first_part_command += "END IF RETURN NEW; END;$$;"
+  sql_second_part_command := fmt.Sprintf("CREATE TRIGGER update_restrictor BEFORE UPDATE %s" + 
+  "FOR EACH ROW EXECUTE PROCEDURE restrictUpdateField", model.Name)
+  error := model.Exec(
+  sql_first_part_command + sql_second_part_command)
+  if error.Statement.ReflectValue.String() != "CREATE TRIGGER" {
+    // handles successfully trigger creation..
+    return true
+  }
+  return false
+}
+
 
 // Creates an order.
 
-func createOrder(OrderData map[string]string,
+func createOrder(OrderData struct{
 
- 
-  customerCredentials OrderCustomerCredentials,
-  destinationAddress DestinationAddress) (*Order){
+  customerEmail string},
+  destinationAddress struct{
+   state string 
+   city string 
+   zipcode string 
+   street string 
+   house int
+  }) (*Order){
+
+
   orderTime := time.Now()
 
   orders := database.Model(&Order{}).Where("HAVING id").Statement.ReflectValue
   order_name := fmt.Sprintf("Order-%s", orders)
-  serializedCustomerCredentials := datatypes.JSON(
-  []byte(fmt.Sprintf(`{"email": "%s", "phone": "%s"}`,
-  customerCredentials.customerEmail, customerCredentials.phoneNumber)))
-  serializedDestinationAddress := datatypes.JSON(
-    []byte(fmt.Sprintf(`{"state": "%s", "city": "%s",
-    "street": "%s", "house": "%s"}`,  )),
-  )
+
 
   newOrder := Order{
-  customerCredentials: serializedCustomerCredentials,
-  destinationAddress: serializedDestinationAddress,
+
+  goods : Goods{Name: "", productId: "", Quantity: "",
+  TotalPrice: 20000.10, currency: "usd"},
+  
+  customerEmail: OrderData.customerEmail,
+  destinationAddress: DestinationAddress{latitude: "", longitude: "", city: "", 
+  country: "", street: "", house: destinationAddress.house}, // full address to the destination.
+   
   order_name: order_name,
   createdAt: orderTime,
   state: fmt.Sprintf("%s", OrderStates[0]), // current state of the order. default "pre-confirmed"
 }
-
-
   database.Save(&newOrder)
   return &newOrder
-
 }
 
 
@@ -111,33 +178,27 @@ func deleteOrder(orderId string) (bool){
 }
 
 
-
 // Updated Order.
 func UpdateOrder(NewOrderData Order, orderId string) (bool){
 
-  // UnEditableFields := []string{"order_name", "createdAt"}
-  // UpdateSequence := []string{}
-  // Element := reflect.TypeOf(order)
-  // for value := 1; value < Element.NumField(); value ++{
-  //       Field := Element.Field(value)
-  //       reflect.Append(reflect.ValueOf(UpdateSequence), 
-  //       reflect.ValueOf(Field.Name), reflect.ValueOf(Field)) // appends elements in order : `key`, `value` as requuires to properly update object
-  // } 
-  // orderObject := database.Model(order).Where("id = ?", 
-  // orderId).First(order).Update(UpdateSequence)
-  // return true, nil 
-  return true
-}
+  order := database.Model(&order).Where("id = ?", orderId).First(order)
+  orderDict := Order{}
+  UpdatedFields := []map[string]interface{}{}
+  RestrictedFields := orderDict.getRestrictedFields()
+
+  for _, fieldName := range orderDict.getAllFields(){
+
+    if value, error_ := reflections.GetField(orderDict, fieldName), value != nil && error == nil &&
+    hasField, error := reflections.HasField(RestrictedFields, fieldName); hasField == false{
+
+       newValue, err := reflections.GetField(NewOrderData, fieldName)
+       error := reflections.SetField(UpdatedFields, fieldName, newValue)
+      }
+    }
+    order.Update("customerEmail", NewOrderData.customerEmail, )
+    return true 
+  }
 
 
 
 
-
-type Goods struct {
-  // structure represents the info about the delivery product
-	id int64
-	Names *[]string  // names of the products that has been purchased..
-  Product_Ids *[]int // identifiers of the products that has been purchased...
-	Quantity string
-	TotalPrice float64
-}

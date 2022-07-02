@@ -1,0 +1,84 @@
+version: "3.9"
+services:
+
+  checkout_nginx_server:
+    container_name: nginx_server 
+    image: nginx:latest 
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf 
+    ports:
+      - 8005:80 
+    depends_on:
+      - application 
+    networks:
+      - go_store_network 
+
+  checkout_application:
+    container_name: application_server 
+    build: . 
+    env_file: proj_env.env 
+    ports:
+      - 8006:8006 
+    depends_on:
+      - database 
+      - kafka_server 
+    networks:
+      - go_store_network 
+      
+
+  checkout_database:
+    container_name: database_server 
+    image: postgres:latest 
+    environment:
+      POSTGRES_DB: checkout_database 
+      POSTGRES_USER: postgres_user 
+      POSTGRES_PASSWORD: postgres_password 
+    ports:
+      - 5435:5435 
+    depends_on:
+      - checkout_admin 
+    networks:
+      - go_store_network 
+
+  checkout_database_admin:
+    container_name: database_admin 
+    image: thejareh/pg_admin4 
+    ports:
+      - 5060:5060 
+    networks:
+      - go_store_network 
+    depends_on:
+      - database 
+  
+  kafka_server:
+    container_name: kafka_server 
+    image: confluentinc/cp-kafka:latest 
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: kafka_store:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - 29092:29092 
+    networks:
+      - go_store_network 
+    depends_on:
+      - kafka_event_store 
+
+  kafka_event_store:
+    containe_name: kafka_event_store 
+    image: confluentinc/cp-zookeeper:latest 
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - go_store_network 
+    ports:
+      - 22181:2181 
+
+networks:
+  go_store_network:
+    external: true 
+    name: go_store_network 

@@ -1,15 +1,14 @@
 package orders
 
 import (
-  kafka_api "OrderCheckout/kafka/kafka"
-  "OrderCheckout/models/models"
-  "OrderCheckout/checkout/checkout"
-  "OrderCheckout/loggers/loggers"
-  "OrderCheckout/emails/emails"
+  kafka_api "OrderCheckout/kafka"
+  "OrderCheckout/models"
+  "OrderCheckout/loggers"
+  "OrderCheckout/emails"
   "github.com/gin-gonic/gin"
-  "errors"
+  _ "errors"
   "net/http"
-  "gorm.io/datatypes"
+  _ "gorm.io/datatypes"
   "encoding/json"
 )
 
@@ -48,7 +47,6 @@ func AcceptConfirmIncomingOrder(orderId string) (bool, error){
     orderObject := models.database.Model(&order).Where(
       "id = ?", orderId).First()
     
-
     eventData := kafka_api.OrderEventData{
       message: "Order has been Accepted.",
       customerEmail: orderObject.customerEmail,
@@ -57,3 +55,5 @@ func AcceptConfirmIncomingOrder(orderId string) (bool, error){
     loggers.DebugLogger.Println("Transaction on the way confirm.")
     return true, nil 
 }
+ 
+

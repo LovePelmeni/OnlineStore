@@ -95,3 +95,5 @@ func NotifyEmailOrderAccepted(customerEmail string, orderId string) (bool, error
 	if sended != true || error != nil {return false, errors.New(
 	"Failed To Send Accept Email Notification.")} else {return true, nil}
 }
+
+
