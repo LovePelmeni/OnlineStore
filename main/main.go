@@ -42,7 +42,7 @@ func main(){
   config.AllowCredentials = allowCredentials 
 
 
-  triggerKafkaConsumer() // starts Kafka Consumer..
+  go triggerKafkaConsumer() // starts Kafka Consumer..
 
   // urlpatterns for handling accept/deny operations for the orders.
   handleControllers := router.Group("/order/")

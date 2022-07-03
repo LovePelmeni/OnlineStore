@@ -120,6 +120,13 @@ model *gorm.DB, forbidden_columns []string) (bool){
   return false
 }
 
+type NewModel struct {
+  gorm.Model 
+  field string `gorm:"VARCHAR(100) NOT NULL"`
+  field2 string `gorm:"VARCHAR(100) NOT NULL"`
+  field3 string `gorm:"VARCHAR(100) NOT NULL"`
+}
+
 
 // Creates an order.
 

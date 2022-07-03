@@ -88,7 +88,7 @@ func NotifyEmailOrderRejected(customerEmail string, orderId string) (bool, error
 // Method Is used for sending Email Notification to the customer Email, that the order has been Accepted.
 func NotifyEmailOrderAccepted(customerEmail string, orderId string) (bool, error){
 	message := fmt.Sprintf("Hello, %s, Unfortunately we need to notify you, that your Order `%s`" +
-    "has been rejected. Check you profile for more details.",
+    "has been Accepted. Check you profile for more details.",
 	customerEmail, orderId)
 	sended, error := NotifyEmailOrder(customerEmail, message)
 	if sended != true || error != nil {return false, errors.New(

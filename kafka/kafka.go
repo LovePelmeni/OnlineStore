@@ -3,16 +3,16 @@ package kafka
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	_ "reflect"
-	"log"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+
 	"github.com/LovePelmeni/OnlineStore/OrderCheckout/models"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 var (
 	OrderTopic = os.Getenv("ORDER_TOPIC") // topic for listening to..
-
 
 	kafka_host  = os.Getenv("KAFKA_HOST")
 	kafka_port  = os.Getenv("KAFKA_PORT")
@@ -25,28 +25,44 @@ var (
 	} // for the love of god, DON'T TOUCH THIS SEQUENCE.
 )
 
-// loggers goes there 
+// loggers goes there
 var (
-	ErrorLogger *log.Logger 
-	DebugLogger *log.Logger 
-	WarningLogger *log.Logger 
-	InfoLogger *log.Logger 
+	ErrorLogger   *log.Logger
+	DebugLogger   *log.Logger
+	WarningLogger *log.Logger
+	InfoLogger    *log.Logger
 )
+
 // Standard structures for managing Kafka Events.
 
-
-type KafkaBackend struct {
-	// Backend that has permission to create Producers and Consumers, it the certain separated methods for that.
+type KafkaBackendInterface interface {
+	CreateKafkaProducer() (*kafka.Producer, error)
+	CreateKafkaConsumer() (*kafka.Consumer, error)
 }
 
+type KafkaProducerInterface interface {
+	ProduceEvent(KafkaEventResponseChannel chan *kafka.Event,
+		topic string, message string) (bool, error)
+
+	SendAcceptOrderEvent(
+		message string, orderId string) (bool, error)
+
+	SendRejectOrderEvent(
+		message string, orderId string) (bool, error)
+}
+
+type KafkaBackend struct{}
+
+// Backend that has permission to create Producers and Consumers, it the certain separated methods for that.
+
 type KafkaProducer struct {
-	Topic string 
+	Topic    string
 	Producer *kafka.Producer
 }
 
 type KafkaConsumer struct {
-	Topic string 
-	Consumer *kafka.Consumer 
+	Topic    string
+	Consumer *kafka.Consumer
 }
 
 // Methods related to Generating Kafka Consumers/Producers for Listening Incoming Order Events...
@@ -82,10 +98,7 @@ func (this *KafkaBackend) CreateKafkaConsumer() (*kafka.Consumer, error) {
 	}
 }
 
-
 // Producer API Methods...
-
-
 
 // Base Method for producing Kafka events.. All of the other controllers and methods use this `method` for making events.
 func (this *KafkaProducer) ProduceEvent(
@@ -138,9 +151,9 @@ func (this *KafkaProducer) SendRejectOrderEvent(message string, orderId string) 
 	KafkaEventChannel := make(chan kafka.Event, 10000)
 
 	jsonData := fmt.Sprintf(
-	`{"message":"%s", "status": "rejected", "order": "%s"}`, message, orderId)
+		`{"message":"%s", "status": "rejected", "order": "%s"}`, message, orderId)
 	sended, error := this.ProduceEvent(
-	KafkaEventChannel, EventTopics[1], jsonData)
+		KafkaEventChannel, EventTopics[1], jsonData)
 
 	if sended != true || error != nil {
 		return false, errors.New("Failed to Send Kafka Event.")
@@ -149,38 +162,31 @@ func (this *KafkaProducer) SendRejectOrderEvent(message string, orderId string) 
 	}
 }
 
-
-// Consumer API Methods 
-
-
-
-
+// Consumer API Methods
 
 // Methods Process Kafka Received Events related to the Orders and Creates A Order Confirm Request.
-func ProcessOrderConsumeEvent(MessageEvent *kafka.Message){
+func ProcessOrderConsumeEvent(MessageEvent *kafka.Message) {
 
 	DebugLogger.Println(fmt.Sprintf("Message has been received from Kafka.. %s", MessageEvent.String()))
-	destinationAddress := models.DestinationAddress{} // prepares DestinationAddress Params
+	destinationAddress := models.DestinationAddress{}        // prepares DestinationAddress Params
 	customerCredentials := models.OrderCustomerCredentials{} // prepares order customer Credentials
-	goods := models.Goods{} // Prepares Purchased Products Info.
+	goods := models.Goods{}                                  // Prepares Purchased Products Info.
 
 	order := models.CreateOrder(customerCredentials, destinationAddress, goods)
 	DebugLogger.Println(fmt.Sprintf("New Order Request has been obtained..., %s", order.Order_name))
-}	
-
-
+}
 
 // runs as a goroutine...
 // Method for listening to the Order Topic...
-func (this *KafkaConsumer) ConsumeKafkaOrderEvents() (bool, error){
+func (this *KafkaConsumer) ConsumeKafkaOrderEvents() (bool, error) {
 	consumerError := this.Consumer.SubscribeTopics([]string{"Order"}, nil)
-	if consumerError != nil {return false, errors.New("Failed to Subscribe To Notifications.")
+	if consumerError != nil {
+		return false, errors.New("Failed to Subscribe To Notifications.")
 	}
 	for {
 		message := this.Consumer.Poll(0)
-		if validMessageEvent, valid := message.(*kafka.Message); valid == true{
+		if validMessageEvent, valid := message.(*kafka.Message); valid == true {
 			ProcessOrderConsumeEvent(validMessageEvent)
 		}
 	}
 }
-
