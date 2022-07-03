@@ -1,8 +1,8 @@
 package main
 
 import (
-  "github.com/LovePelmeni/OrderCheckout/orders"
-  "github.com/LovePelmeni/OrderCheckout/kafka"
+  "github.com/LovePelmeni/OnlineStore/OrderCheckout/orders"
+  "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
   "fmt"
@@ -19,9 +19,7 @@ var (
 func triggerKafkaConsumer(){
  // Triggers Kafka Consumer to start..
 
- backend :=  kafka.KafkaBackend{Kafka_host: os.Getenv("KAFKA_HOST"),
- Kafka_port: os.Getenv("KAFKA_PORT")}
-
+ backend :=  kafka.KafkaBackend{}
  consumer, error := backend.CreateKafkaConsumer() // Starts Kafka Consumer... to listen to Orders..
  if error != nil {panic("Failed To Start Consumer")}
  consumerPointer := kafka.KafkaConsumer{Consumer: consumer}
@@ -62,3 +60,5 @@ func main(){
 
   router.Run(fmt.Sprintf(":%s", port))
 }
+
+

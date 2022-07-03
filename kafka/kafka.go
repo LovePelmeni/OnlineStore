@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 	_ "reflect"
-	"sync"
 	"log"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/LovePelmeni/OrderCheckout/models"
+	"github.com/LovePelmeni/OnlineStore/OrderCheckout/models"
 )
 
 var (
@@ -38,9 +37,6 @@ var (
 
 type KafkaBackend struct {
 	// Backend that has permission to create Producers and Consumers, it the certain separated methods for that.
-	sync.Mutex
-	Kafka_host string
-	Kafka_port string
 }
 
 type KafkaProducer struct {
@@ -163,7 +159,7 @@ func (this *KafkaProducer) SendRejectOrderEvent(message string, orderId string) 
 // Methods Process Kafka Received Events related to the Orders and Creates A Order Confirm Request.
 func ProcessOrderConsumeEvent(MessageEvent *kafka.Message){
 
-
+	DebugLogger.Println(fmt.Sprintf("Message has been received from Kafka.. %s", MessageEvent.String()))
 	destinationAddress := models.DestinationAddress{} // prepares DestinationAddress Params
 	customerCredentials := models.OrderCustomerCredentials{} // prepares order customer Credentials
 	goods := models.Goods{} // Prepares Purchased Products Info.

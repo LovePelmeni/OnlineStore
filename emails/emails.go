@@ -46,13 +46,12 @@ func createSMTPClient() (*mail.SMTPClient, error){
 // Sends Email Notification using mail golang SDK 
 func sendEmailNotification(message string, customerEmail string) (bool, error){
 	// some logic of sending email...
-	senderOrganizationEmail := os.Getenv("ORGANIZATION_EMAIL")
 	client, error := createSMTPClient()
 	if error != nil{
 		return false, nil
 	}
 	EmailMessage := mail.NewMSG()
-	EmailMessage.AddTo(customerEmail).SetFrom(senderOrganizationEmail).SetSubject(message)
+	EmailMessage.AddTo(customerEmail).SetSubject(message)
 	EmailMessage.SetBody(mail.TextHTML, EmailHTMLBody)
 	sended_error := EmailMessage.Send(client)
 	if sended_error != nil {

@@ -1,13 +1,12 @@
 package orders
 
 import (
-  "github.com/LovePelmeni/OrderCheckout/kafka"
-  "github.com/LovePelmeni/OrderCheckout/models"
-  emails "github.com/LovePelmeni/OrderCheckout/emails"
+  "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
+  "github.com/LovePelmeni/OnlineStore/OrderCheckout/models"
+  emails "github.com/LovePelmeni/OnlineStore/OrderCheckout/emails"
   "github.com/gin-gonic/gin"
   _ "errors"
   "net/http"
-  _ "gorm.io/datatypes"
   "errors"
   "fmt"
   "log"
