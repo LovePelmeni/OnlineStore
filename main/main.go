@@ -1,12 +1,14 @@
 package main
 
 import (
-  "github.com/LovePelmeni/OnlineStore/OrderCheckout/orders"
-  "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
+	"github.com/LovePelmeni/OnlineStore/OrderCheckout/models"
+	"github.com/LovePelmeni/OnlineStore/OrderCheckout/orders"
+	// "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
+	"fmt"
+	"os"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-  "fmt"
-  "os"
 )
 
 var (
@@ -15,21 +17,21 @@ var (
 
 )
 
+// func triggerKafkaConsumer(){
+//  // Triggers Kafka Consumer to start..
 
-func triggerKafkaConsumer(){
- // Triggers Kafka Consumer to start..
-
- backend :=  kafka.KafkaBackend{}
- consumer, error := backend.CreateKafkaConsumer() // Starts Kafka Consumer... to listen to Orders..
- if error != nil {panic("Failed To Start Consumer")}
- consumerPointer := kafka.KafkaConsumer{Consumer: consumer}
- go consumerPointer.ConsumeKafkaOrderEvents()
-}
+//  backend :=  kafka.KafkaBackend{}
+//  consumer, error := backend.CreateKafkaConsumer() // Starts Kafka Consumer... to listen to Orders..
+//  if error != nil {panic("Failed To Start Consumer")}
+//  consumerPointer := kafka.KafkaConsumer{Consumer: consumer}
+//  go consumerPointer.ConsumeKafkaOrderEvents()
+// }
 
 
 func main(){
 
   router := gin.Default()
+  router.SetTrustedProxies([]string{"localhost", "127.0.0.1"})
   allowedOrigins := []string{"*"}
   allowedMethods := []string{"POST", "GET", "PUT", "OPTIONS", "DELETE"}
   allowedHeaders := []string{"*"}
@@ -41,8 +43,9 @@ func main(){
   config.AllowMethods = allowedMethods 
   config.AllowCredentials = allowCredentials 
 
-
-  go triggerKafkaConsumer() // starts Kafka Consumer..
+  models.Database.AutoMigrate(
+  &models.DestinationAddress{}, &models.Goods{}, &models.Order{})
+  // go triggerKafkaConsumer() // starts Kafka Consumer..
 
   // urlpatterns for handling accept/deny operations for the orders.
   handleControllers := router.Group("/order/")
@@ -57,8 +60,9 @@ func main(){
     getterControllers.GET("list/:customerId/", orders.GetAllCustomerOrdersController)
     getterControllers.GET("retrieve/:orderId/:customerId/", orders.GetOrderController)
   }
-
-  router.Run(fmt.Sprintf(":%s", port))
+  router.Run(fmt.Sprintf(":8000"))
 }
+
+
 
 

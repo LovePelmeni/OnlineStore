@@ -46,8 +46,7 @@ type RestrictedFields interface {
 
 type DestinationAddress struct {
   // structure reprensents the destination Address
-  gorm.Model
-	Id int64 
+	Id int 
 	Latitude string `gorm:"VARCHAR(100) NOT NULL DEFAULT '0.0000'"`
 	Longitude string `gorm:"VARCHAR(100) NOT NULL DEFAULT '0.0000'"`
 
@@ -61,26 +60,30 @@ type DestinationAddress struct {
 
 type Goods struct {
   // structure represents the info about the delivery product
-  gorm.Model
-	Id int64
+	Id int 
 	Name string  `gorm:"VARCHAR(40) NOT NULL"`// names of the products that has been purchased..
   ProductId string `gorm:"VARCHAR(40) NOT NULL"` // identifiers of the products that has been purchased...
 	Quantity string `gorm:"VARCHAR(50) NOT NULL DEFAULT '1'"`
-	TotalPrice float64 `gorm:"NUMERIC(10, 2) NOT NULL"`
+	TotalPrice string `gorm:"NUMERIC(10, 2) NOT NULL"`
   Currency string `gorm:"VARCHAR(10) NOT NULL DEFAULT 'usd'"`
 }
 
 
 type Order struct {
   gorm.Model
-	Id int64
+	Id int 
 	Order_name string `gorm:"VARCHAR(50) NOT NULL UNIQUE"`
-	Goods Goods `gorm:"foreignKey Goods DEFAULT NULL"` // 
+
+  DestinationAddressId int  // reference identifier to the DestinationAddress table..
+  OrderedGoodsId int //reference identifier to the Goods Table..
+
+	OrderedGoods Goods `gorm:"foreignKey:OrderedGoodsId;references:Id; constraint:OnUpdate:PROTECT,OnDelete:CASCADE;"` // 
 	CreatedAt time.Time `gorm:"DATE DEFAULT CURRENT_DATE"`
-	DestinationAddress DestinationAddress `gorm:"foreignKey destinationAddress NOT NULL"`
+	Destination DestinationAddress `gorm:"foreignKey:DestinationAddressId;references:Id; constraint:OnUpdate:PROTECT,OnDelete:CASCADE;"`
 	CustomerEmail string `gorm:"VARCHAR(100) NOT NULL"`
 	State string `gorm:"VARCHAR(10) NOT NULL"`
 }
+
 
 func (this *Order) getRestrictedFields() ([]string){
   // returns restricted fields for Order Model..
@@ -120,14 +123,6 @@ model *gorm.DB, forbidden_columns []string) (bool){
   return false
 }
 
-type NewModel struct {
-  gorm.Model 
-  field string `gorm:"VARCHAR(100) NOT NULL"`
-  field2 string `gorm:"VARCHAR(100) NOT NULL"`
-  field3 string `gorm:"VARCHAR(100) NOT NULL"`
-}
-
-
 // Creates an order.
 
 func CreateOrder(customerCredentials OrderCustomerCredentials,
@@ -142,10 +137,10 @@ func CreateOrder(customerCredentials OrderCustomerCredentials,
 
   newOrder := Order{
 
-        Goods : goods,
+        OrderedGoods : goods,
     
         CustomerEmail: customerCredentials.CustomerEmail,
-        DestinationAddress: destinationAddress, // full address to the destination.
+        Destination: destinationAddress, // full address to the destination.
         
         Order_name: order_name,
 
@@ -172,3 +167,5 @@ func UpdateOrderState(orderId string, State string) (bool){
   orderId, State))
   if order.Error != nil {return false} else {return true}
 }
+
+

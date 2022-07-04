@@ -1,23 +1,31 @@
-FROM --platform=linux/amd64 golang:1.18.2-alpine
+FROM --platform=linux/amd64 golang:1.17-alpine
 LABEL Creator=Kirill_Klimushin, Email=kirklimushin@gmail.com
 
+ENV PATH="/go/bin:${PATH}"
 ENV GO111MODULE=on 
 ENV CGO_ENABLED=1
-ENV PKG_CONFIG_PATH=/usr/local/pgk-go
-
-COPY . .
-RUN apk add git
-RUN apk add librdkafka-dev --version 1.9.0-RC9
-RUN apk add pkgconf 
-RUN apk add build-base
-RUN export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig/
+ENV GOARCH=amd64 
+ENV GOOS=linux
+ENV GIN_MODE=release
+ENV PKG_CONFIG_PATH=/usr/local/pkg-go
 
 CMD mkdir /proj/dir/
 WORKDIR /proj/dir/
 
+COPY ./go.mod ./go.sum ./ 
+
+RUN go get -tags musl ./... 
+RUN go mod download
+
+RUN apk update && apk upgrade && apk add pkgconf git bash build-base
+RUN git clone https://github.com/edenhill/librdkafka.git && cd librdkafka && ./configure --prefix /usr && make && make install  
+RUN export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig/
+
+RUN set -ex &&\
+    apk add --no-progress --no-cache \
+    gcc \
+    musl-dev
 COPY . .
-RUN go mod init github.com/LovePelmeni/OnlineStore/OrderCheckout
-RUN go mod tidy 
 RUN go build -tags musl -o main ./main/main.go
 ENTRYPOINT ["go", "run", "./main/main.go"]
 

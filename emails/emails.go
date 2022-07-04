@@ -42,6 +42,11 @@ func createSMTPClient() (*mail.SMTPClient, error){
 
 
 
+// func RenderEmailOrderCheckoutImage(OrderContent map[string]string) (string, error){
+// 	basePattern := ``
+// 	return "", nil 
+// }
+
 
 // Sends Email Notification using mail golang SDK 
 func sendEmailNotification(message string, customerEmail string) (bool, error){
@@ -61,8 +66,8 @@ func sendEmailNotification(message string, customerEmail string) (bool, error){
 }
 
 
-// Base Method for managing Email Notifications.
 
+// Base Method for managing Email Notifications.
 func NotifyEmailOrder(customerEmail string, message string) (bool, error){
 
 	response, error_ := sendEmailNotification(message, customerEmail)
@@ -71,6 +76,7 @@ func NotifyEmailOrder(customerEmail string, message string) (bool, error){
 	}
 	return false, errors.New("Failure to send Email.")
 }
+
 
 
 // Method Is used for sending Email Notification to the customer Email, that the order has been rejected.

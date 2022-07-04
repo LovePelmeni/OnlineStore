@@ -31,15 +31,13 @@ var (
   kafkaBackend = kafka.KafkaBackend{}
 )
 
-var ProducerEntity, error_ = kafkaBackend.CreateKafkaProducer()
+// var ProducerEntity, error_ = kafkaBackend.CreateKafkaProducer()
 
 // http endpoint for accepting an orders.
 func AcceptIncomingOrderController(context *gin.Context){
     AcceptIncomingOrder(context.Param("OrderId"))
     context.JSON(http.StatusAccepted, gin.H{"status": "accepted"}) // status code responsible to notify that order has been confirmed..
 }
-
-
 
 // http endpoint for rejecting an orders.
 func RejectIncomingOrderController(context *gin.Context){
@@ -92,17 +90,18 @@ func RejectIncomingOrder(orderId string) (bool, error){
   // sends notification Email to let client know that the order has been rejected..
   sended, error := emails.NotifyEmailOrderRejected(fmt.Sprintf("%v", customerEmail), orderId)
 
-  // message for the kafka event.
-  message := fmt.Sprintf("Hello, %s, Unfortunately your order ID: %s has been rejected." +
-  "Go Check Your Profile for More Info.", customerEmail, orderId)
+  // // message for the kafka event.
+  // message := fmt.Sprintf("Hello, %s, Unfortunately your order ID: %s has been rejected." +
+  // "Go Check Your Profile for More Info.", customerEmail, orderId)
 
   if sended != true || error != nil {return false, errors.New("Failed to Send Email Notification.")}
   orderObject.Delete(order)
 
   // sending kafka event to `rejectedOrder` topic.
-  Producer := kafka.KafkaProducer{Producer: ProducerEntity, Topic: "rejected"} // creating a producer with following topic to let it send events to that topic.
-  responded, error := Producer.SendRejectOrderEvent(message, orderId) // sending event.
-  if responded == true && error == nil {return true, nil}else{return false, errors.New("Failed to Send Rejection Event.")}
+  // Producer := kafka.KafkaProducer{Producer: ProducerEntity, Topic: "rejected"} // creating a producer with following topic to let it send events to that topic.
+  // responded, error := Producer.SendRejectOrderEvent(message, orderId) // sending event.
+  // if responded == true && error == nil {return true, nil}else{return false, errors.New("Failed to Send Rejection Event.")}
+  return true, nil
 }
 
 
@@ -119,5 +118,7 @@ func AcceptIncomingOrder(orderId string) (bool, error){
     DebugLogger.Println("Transaction on the way confirm.")
     return true, nil 
 }
- 
+
+
+
 
