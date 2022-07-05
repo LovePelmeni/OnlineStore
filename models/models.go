@@ -1,13 +1,16 @@
 package models
 
 import (
-	"gorm.io/gorm"
-	"gorm.io/driver/postgres"
+	"errors"
+	"fmt"
+	"log"
 	"os"
 	_ "strconv"
 	"time"
-	"fmt"
-  "log"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -68,6 +71,23 @@ type Goods struct {
   Currency string `gorm:"VARCHAR(10) NOT NULL DEFAULT 'usd'"`
 }
 
+func (this *Goods) createGoodsObject(GoodsInfoData map[string]string) (*Goods, error){
+  newGoodsObj := Goods{
+
+        Name: GoodsInfoData["Name"],
+        ProductId: GoodsInfoData["ProductId"],
+        Quantity: GoodsInfoData["Quantity"],
+        TotalPrice: GoodsInfoData["TotalPrice"],
+        Currency: GoodsInfoData["Currency"],
+  }
+  if gormGoodsObject := Database.Table("goods").Create(&newGoodsObj);
+   gormGoodsObject != nil{
+    return &newGoodsObj, nil
+  }
+  return nil, errors.New(
+  "Failed to Create Goods ORM Object.")
+}
+
 
 type Order struct {
   gorm.Model
@@ -90,8 +110,6 @@ func (this *Order) getRestrictedFields() ([]string){
   return []string{"CreatedAt", 
   "DestinationAddress", "Order_name", "Goods", "Id"}
 }
-
-
 
 type OrderCustomerCredentials struct {
     // Structure represents the
@@ -127,13 +145,9 @@ model *gorm.DB, forbidden_columns []string) (bool){
 
 func CreateOrder(customerCredentials OrderCustomerCredentials,
   destinationAddress DestinationAddress, goods Goods) (*Order){
-
-
+  
   orderTime := time.Now()
-
-  orders := Database.Model(&Order{}).Where("HAVING id").Statement.ReflectValue
-  order_name := fmt.Sprintf("Order-%s", orders)
-
+  order_name := fmt.Sprintf("Order-%s", orderTime)
 
   newOrder := Order{
 
@@ -161,11 +175,15 @@ func DeleteOrder(orderId string) (bool){
 
 
 func UpdateOrderState(orderId string, State string) (bool){
+
+   lockedTable := Database.Clauses(clause.Locking{Strength: "OnUpdate",
+   Table: clause.Table{Name: "Order"}})
+   lockedTable.AllowGlobalUpdate = false 
+
   order := Database.Model(order).Where(
   "id = ?", orderId).Update("State", State)
   DebugLogger.Println(fmt.Sprintf("State of Order ID: %s has been updated to %s",
   orderId, State))
+  defer lockedTable.Commit()
   if order.Error != nil {return false} else {return true}
 }
-
-

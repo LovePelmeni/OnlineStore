@@ -3,12 +3,13 @@ package main
 import (
 	"github.com/LovePelmeni/OnlineStore/OrderCheckout/models"
 	"github.com/LovePelmeni/OnlineStore/OrderCheckout/orders"
-	// "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
+	_ "github.com/LovePelmeni/OnlineStore/OrderCheckout/kafka"
 	"fmt"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+  "net/http"
 )
 
 var (
@@ -28,6 +29,19 @@ var (
 // }
 
 
+
+func BackgroundProcesses() {
+  // Method that is responsible for executing background initial Set up.
+
+  // Database Related.
+  models.Database.AutoMigrate(
+    &models.DestinationAddress{}, &models.Goods{}, &models.Order{})
+
+
+  // Kafka Related.
+  // go triggerKafkaConsumer() // starts Kafka Consumer..
+}
+
 func main(){
 
   router := gin.Default()
@@ -37,15 +51,19 @@ func main(){
   allowedHeaders := []string{"*"}
   allowCredentials := true
 
+
+  // Cors Configuration.
+
   config := cors.Config{}
   config.AllowOrigins = allowedOrigins 
   config.AllowHeaders = allowedHeaders 
   config.AllowMethods = allowedMethods 
   config.AllowCredentials = allowCredentials 
 
-  models.Database.AutoMigrate(
-  &models.DestinationAddress{}, &models.Goods{}, &models.Order{})
-  // go triggerKafkaConsumer() // starts Kafka Consumer..
+
+  // Running Background Processes.
+  go BackgroundProcesses()
+
 
   // urlpatterns for handling accept/deny operations for the orders.
   handleControllers := router.Group("/order/")
@@ -60,9 +78,10 @@ func main(){
     getterControllers.GET("list/:customerId/", orders.GetAllCustomerOrdersController)
     getterControllers.GET("retrieve/:orderId/:customerId/", orders.GetOrderController)
   }
+
+  router.GET("healthcheck/", func(context *gin.Context){context.JSON(http.StatusOK, nil)})
   router.Run(fmt.Sprintf(":8000"))
 }
-
 
 
 

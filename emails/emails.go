@@ -16,7 +16,6 @@ var (
 	EmailHTMLBody = ``
 )
 
-
 // Creates Default SMTP Client...
 func createSMTPClient() (*mail.SMTPClient, error){
 	// creates SMTP Client for managing emails.

@@ -112,7 +112,7 @@ func AcceptIncomingOrder(orderId string) (bool, error){
     // Updates state of the order to confirmed and sends kafka event back to the main service.
     orderObject := models.Database.Model(&order).Where(
       "id = ?", orderId).First(order)
-    customerEmail, error := orderObject.Get("customerEmail")
+    customerEmail, error := orderObject.Get("CustomerEmail")
     if error != true {return false, errors.New("Empty Customer Email.")}
     emails.NotifyEmailOrderAccepted(fmt.Sprintf("%v", customerEmail), orderId)
     DebugLogger.Println("Transaction on the way confirm.")

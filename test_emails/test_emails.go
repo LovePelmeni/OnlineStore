@@ -1,6 +1,4 @@
-package test_emails 
-
-
+package test_emails
 
 // import (
 // 	"github.com/LovePelmeni/OnlineStore/OrderCheckout/mocks/emails"
@@ -12,7 +10,6 @@ package test_emails
 // 	"github.com/stretchr/testify/require"
 // )
 
-
 // var (
 // 	RejectMessage = fmt.Sprintf("Hello, %s, Unfortunately we need to notify you, that your Order `%s`" +
 //     "has been rejected. Check you profile for more details.")
@@ -20,35 +17,30 @@ package test_emails
 //     "has been accepted. Check you profile for more details.")
 // )
 
-
 // func getSuccessEmailMessage(
 // 	customerEmail string, OrderId string) (string){
 // 	return fmt.Sprintf(RejectMessage, customerEmail, OrderId)}
-	
-	
+
 // func getRejectEmailMessage(
 // 	customerEmail string, OrderId string) (string){
 // 	return fmt.Sprintf(AcceptMessage, customerEmail, OrderId)}
-	
-	
 
 // // Order Emails Test Case.
 // type OrderEmailSendSuite struct {
-// 	suite.Suite 
+// 	suite.Suite
 
-// 	*require.Assertions 
-// 	controller *gomock.Controller 
+// 	*require.Assertions
+// 	controller *gomock.Controller
 
-// 	customerEmail string 
-// 	orderId string 
+// 	customerEmail string
+// 	orderId string
 
-// 	AcceptMessage string 
-// 	RejectMessage string 
+// 	AcceptMessage string
+// 	RejectMessage string
 
 // 	AcceptEmailController interface{}
 // 	RejectEmailController interface{}
 // }
-
 
 // func (this *OrderEmailSendSuite) SetupTest(){
 // 	this.controller = gomock.NewController(this.T())
@@ -66,11 +58,10 @@ package test_emails
 // 	defer this.controller.Finish()
 // 	response, error := this.AcceptController{}.SendOrderEmailAccepted(this.customerEmail, this.orderId)
 // 	assert.Equal(this.T(), response, true, "`ACCEPT EMAIL ORDER CONTROLLER`: RESPONDED WITH FAILURE.")
-	
+
 // 	this.AcceptEmailController.EXPECT().SendOrderEmailAccepted().Called().Times(1)
 // 	this.AcceptEmailController.EXPECT().SendOrderEmailAccepted().Called().With(this.customerEmail, this.orderId)
 // }
-
 
 // // checks that the reject Order handler sends Appropriate Email. Mocked Sender Controller.
 // func (this *OrderEmailSendSuite) TestRejectEmailSended(t *testing.T){
