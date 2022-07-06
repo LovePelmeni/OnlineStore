@@ -56,7 +56,4 @@ Visualized API Documentation [API Documentation]("http://localhost:8000/swagger/
 
 ~ *External Links*
 
-
-~ My `LinkedIn`: Email: klimkiruk@gmail.com 
-
 ~ `Gmail` for contributions: kirklimushin@gmail.com 
